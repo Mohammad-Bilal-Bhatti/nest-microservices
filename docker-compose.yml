@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mbroker:
+    image: nats:0.8.0
+    entrypoint: "/gnatsd -DV"
+    expose:
+      - "4222"
+    ports:
+      - "8222:8222"
+    restart: unless-stopped
+    hostname: nats-server
+  # Gateway
+  gateway:
+    build: ./gateway
+    ports:
+      - 3000:3000
+    links:
+      - mbroker
+    depends_on:
+      - mbroker
+    restart: unless-stopped     
+    environment:
+      - NATS_SERVER_HOST=nats://nats-server:4222
+  # User
+  user:
+    build: ./users
+    links:
+      - mbroker
+    depends_on:
+      - mbroker
+    restart: unless-stopped     
+    environment:
+      - NATS_SERVER_HOST=nats://nats-server:4222
+  # Repo
+  repo:
+    build: ./repo
+    links:
+      - mbroker
+    depends_on:
+      - mbroker
+    restart: unless-stopped     
+    environment:
+      - NATS_SERVER_HOST=nats://nats-server:4222
+
+
+
+# Notes: 
+#   - All expressions in ${} format will be populated by entries present in .env 
+#   - RUN $ docker-compose config to validate docker-compose
+#   - docker inspect <container> to inspect or debug container
+#   - docker exec -it <container> <command> to execute command in container
+#   - docker exec -it <container> /bin/bash to connect to bash emulator.
+#   - docker-compose logs -f -t <service-name>  check logs of perticular service
